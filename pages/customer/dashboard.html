@@ -88,7 +88,7 @@
       const color = b.status === 'confirmed' ? 'bg-brand-50 text-brand-700' : b.status === 'cancelled' ? 'bg-red-50 text-red-700' : 'bg-slate-100 text-slate-600';
       return `<div class="py-3 flex items-center justify-between gap-3">
         <div><p class="font-semibold text-sm">${f.name} · ${b.court}</p>
-        <p class="text-xs text-slate-500">${b.date} at ${b.time} · ${b.id}</p></div>
+        <p class="text-xs text-slate-500">${b.date} at ${b.time} · ${b.id}${b.paymentMethod ? ' · ' + ({ cash: 'Pay at venue', cliq: 'CliQ', card: 'Card' + (b.cardLast4 ? ' ••' + b.cardLast4 : ''), wallet: 'Wallet', points: 'Points' }[b.paymentMethod] || '') : ''}</p></div>
         <div class="text-right"><p class="text-sm font-semibold">${JOD(b.total)}</p>
         <span class="inline-block mt-0.5 px-2 py-0.5 rounded-md text-xs font-semibold capitalize ${color}">${b.status}</span></div></div>`;
     };

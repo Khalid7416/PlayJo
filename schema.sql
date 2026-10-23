@@ -134,7 +134,8 @@ CREATE TABLE bookings (
     discount_amount NUMERIC(8,2) NOT NULL DEFAULT 0,
     points_redeemed INTEGER NOT NULL DEFAULT 0,
     total_paid      NUMERIC(8,2) NOT NULL,
-    payment_method  VARCHAR(20) DEFAULT 'cash',
+    payment_method  VARCHAR(10) NOT NULL DEFAULT 'cash'
+                    CHECK (payment_method IN ('cash','cliq','card','wallet','points')),
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
     CHECK (ends_at > starts_at),
     -- Prevent double-booking the same court
@@ -145,6 +146,20 @@ CREATE TABLE bookings (
 );
 CREATE INDEX idx_bookings_customer ON bookings(customer_id, starts_at DESC);
 CREATE INDEX idx_bookings_facility ON bookings(facility_id, starts_at DESC);
+
+-- ---------- Payments (one row per payment attempt for a booking) ----------
+CREATE TABLE payments (
+    id            BIGSERIAL PRIMARY KEY,
+    booking_id    BIGINT NOT NULL REFERENCES bookings(id) ON DELETE CASCADE,
+    method        VARCHAR(10) NOT NULL CHECK (method IN ('cash','cliq','card','wallet','points')),
+    status        VARCHAR(15) NOT NULL DEFAULT 'pending'
+                  CHECK (status IN ('pending','paid','pay_at_venue','failed','refunded')),
+    amount        NUMERIC(8,2) NOT NULL CHECK (amount >= 0),
+    provider_ref  VARCHAR(100),          -- gateway / CliQ / wallet reference
+    card_last4    CHAR(4),               -- never store full card numbers or CVC
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX idx_payments_booking ON payments(booking_id);
 
 -- ---------- Loyalty ----------
 CREATE TABLE loyalty_accounts (
@@ -194,6 +209,13 @@ INSERT INTO facilities (owner_id, name, description, city, address, latitude, lo
  (4, 'Ayla Golf Club','18-hole championship golf course on the Red Sea.',           'Aqaba', 'Ayla Oasis, Aqaba',    29.5430, 35.0070, 'approved', 4.9),
  (3, 'Hoops Zone',   'Indoor basketball courts, pending approval.',                 'Zarqa', 'Zarqa, Jordan',        32.0728, 36.0880, 'pending',  0);
 
+INSERT INTO facilities (owner_id, name, description, city, address, latitude, longitude, approval_status, rating_avg) VALUES
+ (2, 'Sports City Amman',  'Indoor and outdoor multi-sport venue.',           'Amman',  'Shmeisani, Amman',            31.9680, 35.9050, 'approved', 4.5),
+ (4, 'Aqaba Beach Padel',  'Three sea-view padel courts.',                    'Aqaba',  'South Beach, Aqaba',          29.4780, 35.0000, 'approved', 4.8),
+ (3, 'Irbid Arena',        'Turf football pitches and a volleyball court.',   'Irbid',  'University Street, Irbid',    32.5556, 35.8500, 'approved', 4.3),
+ (2, 'Amman Tennis Club',  'Clay and hard tennis courts.',                    'Amman',  'Jabal Amman, Amman',          31.9530, 35.9250, 'approved', 4.6),
+ (3, 'Madaba Sports Hub',  'Football field, basketball and padel courts.',    'Madaba', 'City Center, Madaba',         31.7160, 35.7940, 'approved', 4.4);
+
 INSERT INTO courts (facility_id, name, sport, price_per_hour, capacity) VALUES
  (1, 'Pitch A',  'football',   40.00, 14),
  (1, 'Padel 1',  'padel',      24.00, 4),
@@ -201,6 +223,32 @@ INSERT INTO courts (facility_id, name, sport, price_per_hour, capacity) VALUES
  (2, 'Court 2',  'padel',      28.00, 4),
  (3, 'Main Course','golf',     85.00, 4),
  (4, 'Court A',  'basketball', 30.00, 10);
+
+INSERT INTO courts (facility_id, name, sport, price_per_hour, capacity) VALUES
+ (1, 'Pitch B (7-a-side)',        'football',   40.00, 14),   -- 7
+ (1, 'Pitch C (11-a-side)',       'football',   55.00, 22),   -- 8
+ (1, 'Padel 2',                   'padel',      24.00, 4),    -- 9
+ (2, 'Court 3 (Indoor)',          'padel',      34.00, 4),    -- 10
+ (2, 'Court 4 (Panoramic)',       'padel',      32.00, 4),    -- 11
+ (3, 'Driving Range',             'golf',       20.00, 4),    -- 12
+ (4, 'Court B',                   'basketball', 30.00, 10),   -- 13
+ (4, 'Half-court (3-on-3)',       'basketball', 18.00, 6),    -- 14
+ (5, 'Pitch 1 (5-a-side)',        'football',   30.00, 10),   -- 15
+ (5, 'Pitch 2 (5-a-side)',        'football',   30.00, 10),   -- 16
+ (5, 'Basketball Hall',           'basketball', 35.00, 10),   -- 17
+ (5, 'Volleyball Court',          'volleyball', 22.00, 12),   -- 18
+ (6, 'Sea View 1',                'padel',      26.00, 4),    -- 19
+ (6, 'Sea View 2',                'padel',      26.00, 4),    -- 20
+ (6, 'Sunset Court',              'padel',      30.00, 4),    -- 21
+ (7, 'Pitch A (7-a-side)',        'football',   28.00, 14),   -- 22
+ (7, 'Pitch B (7-a-side)',        'football',   28.00, 14),   -- 23
+ (7, 'Court 1',                   'volleyball', 18.00, 12),   -- 24
+ (8, 'Clay 1',                    'tennis',     22.00, 4),    -- 25
+ (8, 'Clay 2',                    'tennis',     22.00, 4),    -- 26
+ (8, 'Hard Court',                'tennis',     20.00, 4),    -- 27
+ (9, 'Main Field (11-a-side)',    'football',   45.00, 22),   -- 28
+ (9, 'Basketball Court',          'basketball', 25.00, 10),   -- 29
+ (9, 'Padel Court',               'padel',      22.00, 4);    -- 30
 
 INSERT INTO promotions (facility_id, created_by, title, description, code, discount_type, discount_value, valid_from, valid_until) VALUES
  (2, 3, 'Weekday Padel 20% Off', 'Book Sunday–Thursday before 5 PM.',        'PADEL20',  'percent', 20, '2026-10-01', '2026-12-31'),
@@ -214,6 +262,11 @@ INSERT INTO bookings (customer_id, court_id, facility_id, starts_at, ends_at, st
  (5, 3, 2, '2026-10-10 19:00+03', '2026-10-10 20:00+03', 'completed', 28.00, 0,    28.00),
  (5, 1, 1, '2026-10-17 21:00+03', '2026-10-17 22:00+03', 'completed', 40.00, 5.00, 35.00),
  (5, 3, 2, '2026-10-28 18:00+03', '2026-10-28 19:00+03', 'confirmed', 28.00, 5.60, 22.40);
+
+INSERT INTO payments (booking_id, method, status, amount) VALUES
+ (1, 'cash', 'paid',         28.00),
+ (2, 'cliq', 'paid',         35.00),
+ (3, 'cash', 'pay_at_venue', 22.40);
 
 INSERT INTO loyalty_transactions (user_id, booking_id, type, points, multiplier, note) VALUES
  (5, 1, 'earn', 280, 1.00, 'Padel Arena booking'),

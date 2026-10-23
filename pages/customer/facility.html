@@ -50,6 +50,45 @@
           <span id="points-label"></span>
         </label>
 
+        <div id="pay-block" class="space-y-3 border-t border-slate-100 pt-4">
+          <p class="text-sm font-medium">Payment method</p>
+          <div class="grid grid-cols-2 gap-2">
+            <label data-pay="cash" class="flex items-center gap-2 rounded-xl border-2 border-brand-600 bg-brand-50 p-3 text-sm font-semibold cursor-pointer">
+              <input type="radio" name="pay" value="cash" class="accent-emerald-600" checked /> Pay at venue</label>
+            <label data-pay="cliq" class="flex items-center gap-2 rounded-xl border-2 border-slate-200 p-3 text-sm font-semibold cursor-pointer">
+              <input type="radio" name="pay" value="cliq" class="accent-emerald-600" /> CliQ</label>
+            <label data-pay="card" class="flex items-center gap-2 rounded-xl border-2 border-slate-200 p-3 text-sm font-semibold cursor-pointer">
+              <input type="radio" name="pay" value="card" class="accent-emerald-600" /> Card</label>
+            <label data-pay="wallet" class="flex items-center gap-2 rounded-xl border-2 border-slate-200 p-3 text-sm font-semibold cursor-pointer">
+              <input type="radio" name="pay" value="wallet" class="accent-emerald-600" /> Mobile wallet</label>
+          </div>
+
+          <p id="pay-cash" class="text-xs text-slate-500">Pay the front desk when you arrive. Your slot is held for you.</p>
+
+          <div id="pay-cliq" class="hidden space-y-2">
+            <p class="text-xs text-slate-500">Send the total to the CliQ alias <b class="font-mono text-ink">PLAYJO-PAY</b>, then enter the alias or phone number you paid from.</p>
+            <input id="cliq-alias" class="w-full px-3 py-2 rounded-xl border border-slate-200 outline-none focus:border-brand-500" placeholder="Your CliQ alias or phone" />
+          </div>
+
+          <div id="pay-card" class="hidden space-y-2">
+            <input id="card-name" autocomplete="cc-name" class="w-full px-3 py-2 rounded-xl border border-slate-200 outline-none focus:border-brand-500" placeholder="Name on card" />
+            <input id="card-number" inputmode="numeric" autocomplete="cc-number" maxlength="23" class="w-full px-3 py-2 rounded-xl border border-slate-200 font-mono outline-none focus:border-brand-500" placeholder="Card number" />
+            <div class="grid grid-cols-2 gap-2">
+              <input id="card-exp" inputmode="numeric" autocomplete="cc-exp" maxlength="5" class="px-3 py-2 rounded-xl border border-slate-200 font-mono outline-none focus:border-brand-500" placeholder="MM/YY" />
+              <input id="card-cvc" inputmode="numeric" autocomplete="cc-csc" maxlength="4" class="px-3 py-2 rounded-xl border border-slate-200 font-mono outline-none focus:border-brand-500" placeholder="CVC" />
+            </div>
+            <p class="text-xs text-slate-500">Demo card: 4242 4242 4242 4242, any future date, any 3 digits.</p>
+          </div>
+
+          <div id="pay-wallet" class="hidden space-y-2">
+            <select id="wallet-provider" class="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white outline-none focus:border-brand-500">
+              <option>Zain Cash</option><option>Orange Money</option>
+            </select>
+            <input id="wallet-phone" inputmode="numeric" value="079 123 4567" class="w-full px-3 py-2 rounded-xl border border-slate-200 outline-none focus:border-brand-500" placeholder="Wallet phone number" />
+          </div>
+          <p class="text-xs text-slate-400">Demo only: no real payment is taken and card details are never stored.</p>
+        </div>
+
         <div class="border-t border-slate-100 pt-3 text-sm space-y-1.5" id="totals"></div>
         <button id="confirm" class="w-full py-3 rounded-xl bg-brand-600 text-white font-semibold hover:bg-brand-700 disabled:opacity-40" disabled>Select a time slot</button>
         <p class="text-xs text-slate-500">Pay at the venue. Free cancellation up to 6 hours before.</p>
@@ -75,8 +114,9 @@
     const qs = new URLSearchParams(location.search);
     const facility = facilityById(qs.get('id')) || PJ.facilities[0];
 
-    const S = { court: facility.courts[0], date: null, hour: null, promo: null, usePoints: false };
-    const HOURS = Array.from({ length: 9 }, (_, i) => 15 + i);          // 15:00 – 23:00 start times
+    const S = { court: facility.courts[0], date: null, hour: null, promo: null, usePoints: false, pay: 'cash' };
+    const [, OPEN, CLOSE] = facility.hours.match(/(\d\d):00\D+(\d\d):00/).map(Number);
+    const HOURS = Array.from({ length: CLOSE - OPEN }, (_, i) => OPEN + i);   // hourly start times within opening hours
     const pad = (n) => String(n).padStart(2, '0');
     const iso = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
     const days = Array.from({ length: 10 }, (_, i) => { const d = new Date(); d.setDate(d.getDate() + i); return d; });
@@ -84,6 +124,7 @@
 
     // Deterministic "already booked" pattern + anything booked locally in this browser
     function isTaken(courtId, dateStr, hour) {
+      if (dateStr === iso(new Date()) && hour <= new Date().getHours()) return true;   // already started or passed
       const seed = [...dateStr].reduce((s, c) => s + c.charCodeAt(0), 0) + courtId * 7 + hour * 3;
       if (seed % 5 === 0) return true;
       return loadLocalBookings().some((b) => b.courtId === courtId && b.date === dateStr && b.time === `${pad(hour)}:00`);
@@ -100,7 +141,7 @@
       $('courts').innerHTML = facility.courts.map((c) => `
         <button data-court="${c.id}" class="text-left rounded-xl border-2 p-4 ${c.id === S.court.id ? 'border-brand-600 bg-brand-50' : 'border-slate-200 hover:border-brand-500'}">
           <p class="font-semibold">${c.name}</p>
-          <p class="text-xs text-slate-500 capitalize">${c.sport}</p>
+          <p class="text-xs text-slate-500 capitalize">${c.sport}${c.note ? ' · ' + c.note : ''}</p>
           <p class="mt-1 text-sm"><b>${c.price} JOD</b>/hour</p></button>`).join('');
     }
     function renderDays() {
@@ -146,7 +187,45 @@
         <p class="text-xs text-brand-700">You will earn <b>${p.earn}</b> points (x${p.mult} multiplier)</p>`;
       const btn = $('confirm');
       btn.disabled = S.hour == null;
-      btn.textContent = S.hour == null ? 'Select a time slot' : `Confirm booking · ${JOD(p.total)}`;
+      const label = p.total > 0 && S.pay !== 'cash' ? 'Pay & confirm' : 'Confirm booking';
+      btn.textContent = S.hour == null ? 'Select a time slot' : `${label} · ${JOD(p.total)}`;
+      $('pay-block').classList.toggle('hidden', p.total === 0);   // nothing to pay when points cover the full price
+    }
+
+    /* ---------- Payment ---------- */
+    const PAY_LABEL = { cash: 'Pay at venue', cliq: 'CliQ', card: 'Card', wallet: 'Mobile wallet' };
+    function renderPay() {
+      document.querySelectorAll('[data-pay]').forEach((l) => {
+        const on = l.dataset.pay === S.pay;
+        l.classList.toggle('border-brand-600', on); l.classList.toggle('bg-brand-50', on); l.classList.toggle('border-slate-200', !on);
+      });
+      Object.keys(PAY_LABEL).forEach((k) => $('pay-' + k).classList.toggle('hidden', k !== S.pay));
+      renderSummary();
+    }
+    function normalizeJo(raw) {
+      let d = String(raw).replace(/[\s\-()]/g, '');
+      if (d.startsWith('+962')) d = d.slice(4); else if (d.startsWith('00962')) d = d.slice(5); else if (d.startsWith('0')) d = d.slice(1);
+      return /^7[789]\d{7}$/.test(d) ? '+962' + d : null;
+    }
+    function luhn(num) {
+      let sum = 0, alt = false;
+      for (let i = num.length - 1; i >= 0; i--) { let n = +num[i]; if (alt) { n *= 2; if (n > 9) n -= 9; } sum += n; alt = !alt; }
+      return sum % 10 === 0;
+    }
+    function validatePayment(total) {
+      if (total === 0 || S.pay === 'cash') return null;
+      if (S.pay === 'cliq') return $('cliq-alias').value.trim().length < 3 ? 'Enter the CliQ alias or phone you paid from.' : null;
+      if (S.pay === 'wallet') return normalizeJo($('wallet-phone').value) ? null : 'Enter a valid Jordanian wallet phone number.';
+      // card
+      const num = $('card-number').value.replace(/\D/g, ''), exp = $('card-exp').value, cvc = $('card-cvc').value;
+      if (!$('card-name').value.trim()) return 'Enter the name on the card.';
+      if (num.length < 13 || num.length > 19 || !luhn(num)) return 'That card number is not valid.';
+      const m = exp.match(/^(\d\d)\/(\d\d)$/);
+      if (!m || +m[1] < 1 || +m[1] > 12) return 'Enter the expiry as MM/YY.';
+      const now = new Date();
+      if (2000 + +m[2] < now.getFullYear() || (2000 + +m[2] === now.getFullYear() && +m[1] < now.getMonth() + 1)) return 'That card has expired.';
+      if (!/^\d{3,4}$/.test(cvc)) return 'Enter the 3 or 4 digit security code.';
+      return null;
     }
     function refresh() { renderCourts(); renderDays(); renderSlots(); renderSummary(); }
 
@@ -165,16 +244,30 @@
     $('slots').addEventListener('click', (e) => { const b = e.target.closest('[data-hour]'); if (b && !b.disabled) { S.hour = +b.dataset.hour; refresh(); } });
     $('apply-promo').addEventListener('click', () => applyPromo($('promo').value));
     $('use-points').addEventListener('change', (e) => { S.usePoints = e.target.checked; renderSummary(); });
+    document.querySelectorAll('input[name="pay"]').forEach((r) => r.addEventListener('change', () => { S.pay = r.value; renderPay(); }));
+    $('card-number').addEventListener('input', (e) => { e.target.value = e.target.value.replace(/\D/g, '').slice(0, 19).replace(/(.{4})/g, '$1 ').trim(); });
+    $('card-exp').addEventListener('input', (e) => {
+      const d = e.target.value.replace(/\D/g, '').slice(0, 4);
+      e.target.value = d.length > 2 ? d.slice(0, 2) + '/' + d.slice(2) : d;
+    });
+    $('card-cvc').addEventListener('input', (e) => { e.target.value = e.target.value.replace(/\D/g, '').slice(0, 4); });
 
     $('confirm').addEventListener('click', () => {
       if (S.hour == null) return;
       if (!PJ.user.phone_verified) return showToast('Please verify your phone number before booking.');
       const p = price();
+      const err = validatePayment(p.total);
+      if (err) return showToast(err);
+      const method = p.total === 0 ? 'points' : S.pay;
+      const status = p.total === 0 ? 'paid' : S.pay === 'cash' ? 'pay_at_venue' : 'paid';
       const booking = { id: 'B-' + Date.now().toString().slice(-6), facilityId: facility.id, courtId: S.court.id, court: S.court.name,
         date: S.date, time: `${pad(S.hour)}:00`, total: +p.total.toFixed(2), status: 'confirmed',
-        promo: S.promo ? S.promo.code : null, pointsUsed: p.pointsUsed, pointsEarned: p.earn };
+        promo: S.promo ? S.promo.code : null, pointsUsed: p.pointsUsed, pointsEarned: p.earn,
+        paymentMethod: method, paymentStatus: status,
+        cardLast4: method === 'card' ? $('card-number').value.replace(/\D/g, '').slice(-4) : null };   // never store the full card number
       saveLocalBooking(booking);
-      $('done-text').textContent = `${facility.name}, ${S.court.name} on ${booking.date} at ${booking.time}. You earned ${p.earn} points.`;
+      const payNote = method === 'points' ? 'Paid with points.' : method === 'cash' ? 'Pay at the venue.' : `Paid by ${PAY_LABEL[method]} (demo).`;
+      $('done-text').textContent = `${facility.name}, ${S.court.name} on ${booking.date} at ${booking.time}. ${payNote} You earned ${p.earn} points.`;
       $('done').classList.remove('hidden'); $('done').classList.add('flex');
     });
 

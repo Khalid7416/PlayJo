@@ -54,6 +54,32 @@ const JOD = (n) => Number(n).toFixed(2) + ' JOD';
 const facilityById = (id) => PJ.facilities.find((f) => f.id === Number(id));
 const dealByCode = (code) => PJ.deals.find((d) => d.code === String(code).trim().toUpperCase());
 
+/* ---------- more pitches, fields and courts (ids match schema.sql seed order) ---------- */
+const C = (id, name, sport, price, note) => ({ id, name, sport, price, note });
+facilityById(1).courts.push(C(7, 'Pitch B', 'football', 40, '7-a-side'), C(8, 'Pitch C', 'football', 55, '11-a-side'), C(9, 'Padel 2', 'padel', 24, 'Outdoor'));
+facilityById(2).courts.push(C(10, 'Court 3', 'padel', 34, 'Indoor'), C(11, 'Court 4', 'padel', 32, 'Panoramic glass'));
+facilityById(3).courts.push(C(12, 'Driving Range', 'golf', 20, 'Bay for up to 4 players'));
+facilityById(4).courts.push(C(13, 'Court B', 'basketball', 30, 'Full court'), C(14, 'Half-court', 'basketball', 18, '3-on-3'));
+
+PJ.facilities.push(
+  { id: 5, name: 'Sports City Amman', city: 'Amman', area: 'Shmeisani', rating: 4.5, grad: 'from-cyan-500 to-blue-700',
+    about: 'Indoor and outdoor multi-sport venue: 5-a-side football, basketball and volleyball.', hours: '08:00 – 24:00',
+    courts: [C(15, 'Pitch 1', 'football', 30, '5-a-side'), C(16, 'Pitch 2', 'football', 30, '5-a-side'),
+             C(17, 'Basketball Hall', 'basketball', 35, 'Indoor'), C(18, 'Volleyball Court', 'volleyball', 22, 'Indoor')] },
+  { id: 6, name: 'Aqaba Beach Padel', city: 'Aqaba', area: 'South Beach', rating: 4.8, grad: 'from-teal-400 to-cyan-700',
+    about: 'Three sea-view padel courts with floodlights for evening play.', hours: '10:00 – 24:00',
+    courts: [C(19, 'Sea View 1', 'padel', 26, 'Outdoor'), C(20, 'Sea View 2', 'padel', 26, 'Outdoor'), C(21, 'Sunset Court', 'padel', 30, 'Premium')] },
+  { id: 7, name: 'Irbid Arena', city: 'Irbid', area: 'University Street', rating: 4.3, grad: 'from-amber-500 to-orange-700',
+    about: 'Artificial-turf football pitches and a volleyball court in the north.', hours: '09:00 – 23:00',
+    courts: [C(22, 'Pitch A', 'football', 28, '7-a-side'), C(23, 'Pitch B', 'football', 28, '7-a-side'), C(24, 'Court 1', 'volleyball', 18, 'Outdoor')] },
+  { id: 8, name: 'Amman Tennis Club', city: 'Amman', area: 'Jabal Amman', rating: 4.6, grad: 'from-rose-500 to-red-700',
+    about: 'Two clay courts and one hard court, with coaching available.', hours: '07:00 – 22:00',
+    courts: [C(25, 'Clay 1', 'tennis', 22, 'Clay'), C(26, 'Clay 2', 'tennis', 22, 'Clay'), C(27, 'Hard Court', 'tennis', 20, 'Hard')] },
+  { id: 9, name: 'Madaba Sports Hub', city: 'Madaba', area: 'City Center', rating: 4.4, grad: 'from-green-500 to-emerald-700',
+    about: 'Full-size football field plus basketball and padel courts.', hours: '09:00 – 23:00',
+    courts: [C(28, 'Main Field', 'football', 45, '11-a-side'), C(29, 'Basketball Court', 'basketball', 25, 'Outdoor'), C(30, 'Padel Court', 'padel', 22, 'Outdoor')] }
+);
+
 // Codes claimed in the seed data plus any claimed on the Deals page in this browser
 function claimedCodes() {
   let extra = [];

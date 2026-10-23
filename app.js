@@ -25,10 +25,20 @@ const FACILITIES = [
     grad: 'from-emerald-500 to-teal-700' },
   { id: 2, name: 'Padel Arena',    city: 'Amman', area: 'Deir Ghbar', sports: ['padel'],             from: 28, rating: 4.6, lat: 31.9552, lng: 35.8780, tag: '20% off weekdays',
     grad: 'from-sky-500 to-indigo-700' },
-  { id: 3, name: 'Ayla Golf Club', city: 'Aqaba', area: 'Ayla Oasis', sports: ['golf'],              from: 85, rating: 4.9, lat: 29.5430, lng: 35.0070, tag: 'Premium',
+  { id: 3, name: 'Ayla Golf Club', city: 'Aqaba', area: 'Ayla Oasis', sports: ['golf'],              from: 20, rating: 4.9, lat: 29.5430, lng: 35.0070, tag: 'Premium',
     grad: 'from-lime-500 to-green-800' },
-  { id: 4, name: 'Hoops Zone',     city: 'Zarqa', area: 'Downtown',   sports: ['basketball'],        from: 30, rating: 4.4, lat: 32.0728, lng: 36.0880, tag: 'New',
-    grad: 'from-orange-500 to-red-700' }
+  { id: 4, name: 'Hoops Zone',     city: 'Zarqa', area: 'Downtown',   sports: ['basketball'],        from: 18, rating: 4.4, lat: 32.0728, lng: 36.0880, tag: 'New',
+    grad: 'from-orange-500 to-red-700' },
+  { id: 5, name: 'Sports City Amman',  city: 'Amman',  area: 'Shmeisani',        sports: ['football', 'basketball', 'volleyball'], from: 22, rating: 4.5, lat: 31.9680, lng: 35.9050, tag: 'Multi-sport',
+    grad: 'from-cyan-500 to-blue-700' },
+  { id: 6, name: 'Aqaba Beach Padel',  city: 'Aqaba',  area: 'South Beach',      sports: ['padel'],                                from: 26, rating: 4.8, lat: 29.4780, lng: 35.0000, tag: 'Sea view',
+    grad: 'from-teal-400 to-cyan-700' },
+  { id: 7, name: 'Irbid Arena',        city: 'Irbid',  area: 'University Street', sports: ['football', 'volleyball'],               from: 18, rating: 4.3, lat: 32.5556, lng: 35.8500, tag: 'New',
+    grad: 'from-amber-500 to-orange-700' },
+  { id: 8, name: 'Amman Tennis Club',  city: 'Amman',  area: 'Jabal Amman',      sports: ['tennis'],                               from: 20, rating: 4.6, lat: 31.9530, lng: 35.9250, tag: 'Clay courts',
+    grad: 'from-rose-500 to-red-700' },
+  { id: 9, name: 'Madaba Sports Hub',  city: 'Madaba', area: 'City Center',      sports: ['football', 'basketball', 'padel'],      from: 22, rating: 4.4, lat: 31.7160, lng: 35.7940, tag: 'Multi-sport',
+    grad: 'from-green-500 to-emerald-700' }
 ];
 
 const DEALS = [
