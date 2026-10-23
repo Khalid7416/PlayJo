@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Book a Court – PlayJo</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{colors:{brand:{50:'#ecfdf5',100:'#d1fae5',500:'#10b981',600:'#059669',700:'#047857',900:'#064e3b'},ink:'#0f172a'},fontFamily:{sans:['Inter','system-ui','sans-serif']}}}}</script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+</head>
+<body class="font-sans text-ink bg-slate-50">
+  <div id="nav"></div>
+
+  <main class="max-w-6xl mx-auto px-4 py-8">
+    <div id="hero" class="rounded-3xl text-white p-8 md:p-10"></div>
+
+    <div class="mt-8 grid lg:grid-cols-3 gap-6">
+      <!-- Left: choose court, date, time -->
+      <section class="lg:col-span-2 space-y-6">
+        <div class="rounded-3xl bg-white border border-slate-200 p-6">
+          <h2 class="font-bold">1. Choose a court</h2>
+          <div id="courts" class="mt-3 grid sm:grid-cols-2 gap-3"></div>
+        </div>
+        <div class="rounded-3xl bg-white border border-slate-200 p-6">
+          <h2 class="font-bold">2. Pick a day</h2>
+          <div id="days" class="mt-3 flex gap-2 overflow-x-auto pb-1"></div>
+        </div>
+        <div class="rounded-3xl bg-white border border-slate-200 p-6">
+          <h2 class="font-bold">3. Pick a time <span class="text-sm font-normal text-slate-500">(1 hour slots)</span></h2>
+          <div id="slots" class="mt-3 grid grid-cols-3 sm:grid-cols-4 gap-2"></div>
+        </div>
+      </section>
+
+      <!-- Right: summary -->
+      <aside class="lg:sticky lg:top-24 self-start rounded-3xl bg-white border border-slate-200 p-6 space-y-4">
+        <h2 class="font-bold">Booking summary</h2>
+        <div id="summary" class="text-sm space-y-1.5"></div>
+
+        <div>
+          <label for="promo" class="text-sm font-medium">Promo code</label>
+          <div class="mt-1 flex gap-2">
+            <input id="promo" class="flex-1 px-3 py-2 rounded-xl border border-slate-200 font-mono uppercase outline-none focus:border-brand-500" placeholder="e.g. PADEL20" />
+            <button id="apply-promo" class="px-4 py-2 rounded-xl bg-slate-100 font-semibold text-sm hover:bg-slate-200">Apply</button>
+          </div>
+          <p id="promo-msg" class="text-xs mt-1 hidden"></p>
+        </div>
+
+        <label class="flex items-start gap-2 text-sm">
+          <input id="use-points" type="checkbox" class="mt-1 accent-emerald-600" />
+          <span id="points-label"></span>
+        </label>
+
+        <div class="border-t border-slate-100 pt-3 text-sm space-y-1.5" id="totals"></div>
+        <button id="confirm" class="w-full py-3 rounded-xl bg-brand-600 text-white font-semibold hover:bg-brand-700 disabled:opacity-40" disabled>Select a time slot</button>
+        <p class="text-xs text-slate-500">Pay at the venue. Free cancellation up to 6 hours before.</p>
+      </aside>
+    </div>
+  </main>
+
+  <!-- Success modal -->
+  <div id="done" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+    <div class="absolute inset-0 bg-ink/60"></div>
+    <div class="relative bg-white rounded-3xl p-8 max-w-sm w-full text-center">
+      <div class="mx-auto w-16 h-16 rounded-full bg-brand-50 text-brand-600 flex items-center justify-center text-3xl">✓</div>
+      <h3 class="text-2xl font-extrabold mt-4">Booking confirmed</h3>
+      <p id="done-text" class="text-slate-500 text-sm mt-1"></p>
+      <a href="dashboard.html" class="mt-6 block py-3 rounded-xl bg-brand-600 text-white font-semibold hover:bg-brand-700">View in my dashboard</a>
+    </div>
+  </div>
+
+  <script src="../../assets/js/data.js"></script>
+  <script>
+    renderNav('Explore');
+    const $ = (id) => document.getElementById(id);
+    const qs = new URLSearchParams(location.search);
+    const facility = facilityById(qs.get('id')) || PJ.facilities[0];
+
+    const S = { court: facility.courts[0], date: null, hour: null, promo: null, usePoints: false };
+    const HOURS = Array.from({ length: 9 }, (_, i) => 15 + i);          // 15:00 – 23:00 start times
+    const pad = (n) => String(n).padStart(2, '0');
+    const iso = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    const days = Array.from({ length: 10 }, (_, i) => { const d = new Date(); d.setDate(d.getDate() + i); return d; });
+    S.date = iso(days[0]);
+
+    // Deterministic "already booked" pattern + anything booked locally in this browser
+    function isTaken(courtId, dateStr, hour) {
+      const seed = [...dateStr].reduce((s, c) => s + c.charCodeAt(0), 0) + courtId * 7 + hour * 3;
+      if (seed % 5 === 0) return true;
+      return loadLocalBookings().some((b) => b.courtId === courtId && b.date === dateStr && b.time === `${pad(hour)}:00`);
+    }
+
+    // Hero
+    $('hero').className += ' bg-gradient-to-br ' + facility.grad;
+    $('hero').innerHTML = `<p class="text-white/80 text-sm">${facility.area}, ${facility.city} · ★ ${facility.rating}</p>
+      <h1 class="text-3xl md:text-5xl font-extrabold mt-1">${facility.name}</h1>
+      <p class="mt-2 text-white/90 max-w-xl">${facility.about}</p>
+      <p class="mt-3 text-sm text-white/80">Open ${facility.hours}</p>`;
+
+    function renderCourts() {
+      $('courts').innerHTML = facility.courts.map((c) => `
+        <button data-court="${c.id}" class="text-left rounded-xl border-2 p-4 ${c.id === S.court.id ? 'border-brand-600 bg-brand-50' : 'border-slate-200 hover:border-brand-500'}">
+          <p class="font-semibold">${c.name}</p>
+          <p class="text-xs text-slate-500 capitalize">${c.sport}</p>
+          <p class="mt-1 text-sm"><b>${c.price} JOD</b>/hour</p></button>`).join('');
+    }
+    function renderDays() {
+      $('days').innerHTML = days.map((d) => {
+        const s = iso(d), on = s === S.date;
+        return `<button data-day="${s}" class="shrink-0 w-16 rounded-xl border-2 py-2 text-center ${on ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-200 hover:border-brand-500'}">
+          <span class="block text-xs ${on ? 'text-white/80' : 'text-slate-500'}">${d.toLocaleDateString('en-GB', { weekday: 'short' })}</span>
+          <span class="block text-lg font-bold">${d.getDate()}</span>
+          <span class="block text-xs ${on ? 'text-white/80' : 'text-slate-500'}">${d.toLocaleDateString('en-GB', { month: 'short' })}</span></button>`;
+      }).join('');
+    }
+    function renderSlots() {
+      $('slots').innerHTML = HOURS.map((h) => {
+        const taken = isTaken(S.court.id, S.date, h), on = S.hour === h;
+        return `<button data-hour="${h}" ${taken ? 'disabled' : ''} class="py-2.5 rounded-xl border-2 text-sm font-semibold ${taken ? 'border-slate-100 bg-slate-50 text-slate-300 line-through cursor-not-allowed' : on ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-200 hover:border-brand-500'}">${pad(h)}:00</button>`;
+      }).join('');
+    }
+
+    // Pricing
+    function price() {
+      const sub = S.court.price;
+      let discount = 0;
+      if (S.promo) discount = S.promo.type === 'percent' ? sub * S.promo.value / 100 : Math.min(S.promo.value, sub);
+      const afterPromo = sub - discount;
+      const bal = pointsBalance();
+      const pointsUsed = S.usePoints ? Math.min(bal, Math.floor(afterPromo * 100)) : 0;
+      const total = Math.max(0, afterPromo - pointsUsed / 100);
+      const mult = loyaltyMultiplier();
+      return { sub, discount, pointsUsed, total, mult, earn: Math.floor(total * 10 * mult) };
+    }
+    function renderSummary() {
+      const p = price(), bal = pointsBalance();
+      $('summary').innerHTML = `
+        <div class="flex justify-between"><span class="text-slate-500">Venue</span><b>${facility.name}</b></div>
+        <div class="flex justify-between"><span class="text-slate-500">Court</span><b>${S.court.name}</b></div>
+        <div class="flex justify-between"><span class="text-slate-500">When</span><b>${S.hour == null ? '–' : `${S.date}, ${pad(S.hour)}:00`}</b></div>`;
+      $('points-label').innerHTML = `Use my points <span class="text-slate-500">(${bal.toLocaleString()} available, 100 = 1 JOD)</span>`;
+      $('totals').innerHTML = `
+        <div class="flex justify-between"><span class="text-slate-500">Court (1 hour)</span><span>${JOD(p.sub)}</span></div>
+        ${p.discount ? `<div class="flex justify-between text-brand-700"><span>Promo ${S.promo.code}</span><span>-${JOD(p.discount)}</span></div>` : ''}
+        ${p.pointsUsed ? `<div class="flex justify-between text-brand-700"><span>Points (${p.pointsUsed})</span><span>-${JOD(p.pointsUsed / 100)}</span></div>` : ''}
+        <div class="flex justify-between text-base font-bold pt-1"><span>Total</span><span>${JOD(p.total)}</span></div>
+        <p class="text-xs text-brand-700">You will earn <b>${p.earn}</b> points (x${p.mult} multiplier)</p>`;
+      const btn = $('confirm');
+      btn.disabled = S.hour == null;
+      btn.textContent = S.hour == null ? 'Select a time slot' : `Confirm booking · ${JOD(p.total)}`;
+    }
+    function refresh() { renderCourts(); renderDays(); renderSlots(); renderSummary(); }
+
+    function applyPromo(code) {
+      const d = dealByCode(code), msg = $('promo-msg');
+      msg.classList.remove('hidden', 'text-red-600', 'text-brand-700');
+      if (!d) { S.promo = null; msg.textContent = 'That code was not found.'; msg.classList.add('text-red-600'); }
+      else if (d.facilityId && d.facilityId !== facility.id) { S.promo = null; msg.textContent = `${d.code} only works at ${facilityById(d.facilityId).name}.`; msg.classList.add('text-red-600'); }
+      else { S.promo = d; msg.textContent = `${d.title} applied.`; msg.classList.add('text-brand-700'); }
+      renderSummary();
+    }
+
+    // Events
+    $('courts').addEventListener('click', (e) => { const b = e.target.closest('[data-court]'); if (b) { S.court = facility.courts.find((c) => c.id === +b.dataset.court); S.hour = null; refresh(); } });
+    $('days').addEventListener('click', (e) => { const b = e.target.closest('[data-day]'); if (b) { S.date = b.dataset.day; S.hour = null; refresh(); } });
+    $('slots').addEventListener('click', (e) => { const b = e.target.closest('[data-hour]'); if (b && !b.disabled) { S.hour = +b.dataset.hour; refresh(); } });
+    $('apply-promo').addEventListener('click', () => applyPromo($('promo').value));
+    $('use-points').addEventListener('change', (e) => { S.usePoints = e.target.checked; renderSummary(); });
+
+    $('confirm').addEventListener('click', () => {
+      if (S.hour == null) return;
+      if (!PJ.user.phone_verified) return showToast('Please verify your phone number before booking.');
+      const p = price();
+      const booking = { id: 'B-' + Date.now().toString().slice(-6), facilityId: facility.id, courtId: S.court.id, court: S.court.name,
+        date: S.date, time: `${pad(S.hour)}:00`, total: +p.total.toFixed(2), status: 'confirmed',
+        promo: S.promo ? S.promo.code : null, pointsUsed: p.pointsUsed, pointsEarned: p.earn };
+      saveLocalBooking(booking);
+      $('done-text').textContent = `${facility.name}, ${S.court.name} on ${booking.date} at ${booking.time}. You earned ${p.earn} points.`;
+      $('done').classList.remove('hidden'); $('done').classList.add('flex');
+    });
+
+    refresh();
+    if (qs.get('promo')) { $('promo').value = qs.get('promo'); applyPromo(qs.get('promo')); }
+  </script>
+</body>
+</html>

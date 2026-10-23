@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>My Dashboard – PlayJo</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{colors:{brand:{50:'#ecfdf5',100:'#d1fae5',500:'#10b981',600:'#059669',700:'#047857',900:'#064e3b'},ink:'#0f172a'},fontFamily:{sans:['Inter','system-ui','sans-serif']}}}}</script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+</head>
+<body class="font-sans text-ink bg-slate-50">
+  <div id="nav"></div>
+
+  <main class="max-w-6xl mx-auto px-4 py-8 space-y-8">
+    <div class="flex flex-wrap items-end justify-between gap-3">
+      <div>
+        <h1 class="text-2xl md:text-3xl font-extrabold" id="greeting"></h1>
+        <p class="text-slate-500 text-sm" id="user-meta"></p>
+      </div>
+      <a href="../../index.html#facilities" class="px-5 py-2.5 rounded-xl bg-brand-600 text-white font-semibold hover:bg-brand-700 text-sm">Book a court</a>
+    </div>
+
+    <!-- Points + discounts -->
+    <section class="grid md:grid-cols-3 gap-6">
+      <div class="md:col-span-2 rounded-3xl bg-ink text-white p-6 md:p-8">
+        <p class="text-slate-300 text-sm">Loyalty points</p>
+        <p class="text-5xl font-extrabold mt-1"><span id="points">0</span> <span class="text-base font-semibold text-slate-300">pts</span></p>
+        <p class="text-slate-300 text-sm mt-1">Worth <b class="text-white" id="points-value"></b> · 100 points = 1 JOD</p>
+        <div class="mt-5 h-2 rounded-full bg-white/15"><div id="tier-bar" class="h-2 rounded-full bg-brand-500" style="width:0%"></div></div>
+        <p class="text-xs text-slate-300 mt-2" id="tier-note"></p>
+        <div class="mt-5 inline-flex items-center gap-2 rounded-xl bg-white/10 px-4 py-2 text-sm">
+          Next booking multiplier: <b id="multiplier" class="text-brand-500"></b>
+        </div>
+      </div>
+      <div class="rounded-3xl bg-white border border-slate-200 p-6">
+        <h2 class="font-bold">Active discounts</h2>
+        <div id="discounts" class="mt-3 space-y-3"></div>
+        <a href="deals.html" class="mt-4 inline-block text-sm text-brand-600 font-semibold hover:underline">Find more deals →</a>
+      </div>
+    </section>
+
+    <!-- Bookings -->
+    <section class="grid lg:grid-cols-2 gap-6">
+      <div class="rounded-3xl bg-white border border-slate-200 p-6">
+        <h2 class="font-bold">Upcoming bookings</h2>
+        <div id="upcoming" class="mt-3 divide-y divide-slate-100"></div>
+      </div>
+      <div class="rounded-3xl bg-white border border-slate-200 p-6">
+        <h2 class="font-bold">Past bookings</h2>
+        <div id="past" class="mt-3 divide-y divide-slate-100"></div>
+      </div>
+    </section>
+
+    <!-- Points history -->
+    <section class="rounded-3xl bg-white border border-slate-200 p-6">
+      <h2 class="font-bold">Points history</h2>
+      <div id="history" class="mt-3 divide-y divide-slate-100"></div>
+    </section>
+  </main>
+
+  <script src="../../assets/js/data.js"></script>
+  <script>
+    renderNav('My dashboard');
+    const $ = (id) => document.getElementById(id);
+    const u = PJ.user, pts = pointsBalance();
+
+    $('greeting').textContent = `Hi, ${u.name.split(' ')[0]}`;
+    $('user-meta').textContent = `${u.email} · ${u.phone} · phone verified ✓`;
+    $('points').textContent = pts.toLocaleString();
+    $('points-value').textContent = JOD(pts / 100);
+    $('tier-bar').style.width = Math.min(100, (pts / u.next_tier_at) * 100) + '%';
+    $('tier-note').textContent = pts >= u.next_tier_at ? 'Gold tier unlocked' : `${(u.next_tier_at - pts).toLocaleString()} points to Gold tier (you are ${u.tier})`;
+    $('multiplier').textContent = 'x' + loyaltyMultiplier();
+
+    // Discounts
+    const mine = PJ.deals.filter((d) => claimedCodes().includes(d.code));
+    $('discounts').innerHTML = mine.length ? mine.map((d) => `
+      <div class="rounded-xl border border-dashed border-brand-500/60 bg-brand-50/60 p-3">
+        <p class="font-semibold text-sm">${d.title}</p>
+        <p class="text-xs text-slate-500">Code <span class="font-mono font-semibold text-ink">${d.code}</span> · until ${d.until}</p>
+      </div>`).join('') : '<p class="text-sm text-slate-500">No active discounts yet.</p>';
+
+    // Bookings
+    const today = new Date().toISOString().slice(0, 10);
+    const all = allBookings();
+    const row = (b) => {
+      const f = facilityById(b.facilityId);
+      const color = b.status === 'confirmed' ? 'bg-brand-50 text-brand-700' : b.status === 'cancelled' ? 'bg-red-50 text-red-700' : 'bg-slate-100 text-slate-600';
+      return `<div class="py-3 flex items-center justify-between gap-3">
+        <div><p class="font-semibold text-sm">${f.name} · ${b.court}</p>
+        <p class="text-xs text-slate-500">${b.date} at ${b.time} · ${b.id}</p></div>
+        <div class="text-right"><p class="text-sm font-semibold">${JOD(b.total)}</p>
+        <span class="inline-block mt-0.5 px-2 py-0.5 rounded-md text-xs font-semibold capitalize ${color}">${b.status}</span></div></div>`;
+    };
+    const up = all.filter((b) => b.date >= today && b.status !== 'completed' && b.status !== 'cancelled');
+    const past = all.filter((b) => !up.includes(b)).reverse();
+    $('upcoming').innerHTML = up.length ? up.map(row).join('') : '<p class="py-3 text-sm text-slate-500">Nothing booked. <a class="text-brand-600 font-semibold" href="../../index.html#facilities">Find a court</a></p>';
+    $('past').innerHTML = past.length ? past.map(row).join('') : '<p class="py-3 text-sm text-slate-500">No past bookings.</p>';
+
+    // Points history (static seed + points from bookings made in this browser)
+    const local = loadLocalBookings().flatMap((b) => [
+      b.pointsEarned ? { date: b.date, note: `${facilityById(b.facilityId).name} booking`, points: b.pointsEarned } : null,
+      b.pointsUsed ? { date: b.date, note: 'Points redeemed', points: -b.pointsUsed } : null].filter(Boolean));
+    const hist = [...PJ.tx, ...local].sort((a, b) => b.date.localeCompare(a.date));
+    $('history').innerHTML = hist.map((t) => `
+      <div class="py-3 flex justify-between text-sm">
+        <div><p class="font-medium">${t.note}</p><p class="text-xs text-slate-500">${t.date}</p></div>
+        <p class="font-semibold ${t.points >= 0 ? 'text-brand-600' : 'text-red-600'}">${t.points >= 0 ? '+' : ''}${t.points}</p></div>`).join('');
+  </script>
+</body>
+</html>

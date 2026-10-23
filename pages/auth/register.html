@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Create Account – PlayJo</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{colors:{brand:{50:'#ecfdf5',100:'#d1fae5',500:'#10b981',600:'#059669',700:'#047857',900:'#064e3b'},ink:'#0f172a'},fontFamily:{sans:['Inter','system-ui','sans-serif']}}}}</script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+</head>
+<body class="font-sans text-ink bg-slate-50 min-h-screen">
+  <header class="bg-white border-b border-slate-200">
+    <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+      <a href="../../index.html" class="flex items-center gap-2 font-extrabold text-xl">
+        <span class="inline-flex w-9 h-9 rounded-xl bg-brand-600 text-white items-center justify-center">P</span>
+        Play<span class="text-brand-600">Jo</span></a>
+      <a href="../../index.html" class="text-sm font-semibold text-slate-600 hover:text-brand-600">← Back to home</a>
+    </div>
+  </header>
+
+  <main class="max-w-lg mx-auto px-4 py-10">
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 md:p-8">
+
+      <!-- Step 1 -->
+      <div id="step-form">
+        <p id="role-badge" class="inline-block px-3 py-1 rounded-full bg-brand-50 text-brand-700 text-xs font-semibold"></p>
+        <h1 id="title" class="text-2xl font-extrabold mt-3"></h1>
+        <p id="subtitle" class="text-slate-500 text-sm mt-1"></p>
+
+        <form id="form" class="mt-6 space-y-4" novalidate>
+          <div id="owner-fields" class="hidden space-y-4">
+            <div>
+              <label for="facility" class="text-sm font-medium">Facility name</label>
+              <input id="facility" class="mt-1 w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-500 outline-none" placeholder="e.g. Amman Padel Club" />
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label for="city" class="text-sm font-medium">City</label>
+                <select id="city" class="mt-1 w-full px-4 py-3 rounded-xl border border-slate-200 bg-white outline-none focus:border-brand-500">
+                  <option>Amman</option><option>Aqaba</option><option>Zarqa</option><option>Irbid</option><option>Madaba</option>
+                </select>
+              </div>
+              <div>
+                <label for="sport" class="text-sm font-medium">Main sport</label>
+                <select id="sport" class="mt-1 w-full px-4 py-3 rounded-xl border border-slate-200 bg-white outline-none focus:border-brand-500">
+                  <option>Padel</option><option>Football</option><option>Basketball</option><option>Golf</option><option>Tennis</option><option>Volleyball</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label for="name" class="text-sm font-medium">Full name</label>
+            <input id="name" class="mt-1 w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-500 outline-none" placeholder="Your name" />
+          </div>
+          <div>
+            <label for="email" class="text-sm font-medium">Email</label>
+            <input id="email" type="email" class="mt-1 w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-500 outline-none" placeholder="you@example.com" />
+          </div>
+          <div>
+            <label for="phone" class="text-sm font-medium">Phone number</label>
+            <div class="mt-1 flex">
+              <span class="px-3 inline-flex items-center rounded-l-xl border border-r-0 border-slate-200 bg-slate-50 text-slate-600 text-sm">🇯🇴 +962</span>
+              <input id="phone" inputmode="numeric" class="w-full px-4 py-3 rounded-r-xl border border-slate-200 focus:border-brand-500 outline-none" placeholder="79 123 4567" />
+            </div>
+          </div>
+          <div>
+            <label for="password" class="text-sm font-medium">Password</label>
+            <input id="password" type="password" class="mt-1 w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-500 outline-none" placeholder="At least 8 characters" />
+          </div>
+          <p id="form-error" class="hidden text-sm text-red-600"></p>
+          <button id="send" class="w-full py-3 rounded-xl bg-brand-600 text-white font-semibold hover:bg-brand-700 disabled:opacity-50">Send verification code</button>
+        </form>
+      </div>
+
+      <!-- Step 2 -->
+      <div id="step-otp" class="hidden">
+        <div class="w-12 h-12 rounded-2xl bg-brand-50 text-brand-600 flex items-center justify-center text-2xl">📱</div>
+        <h2 class="text-2xl font-extrabold mt-4">Verify your phone</h2>
+        <p class="text-slate-500 text-sm mt-1">Enter the 6-digit code sent to <b id="phone-label" class="text-ink"></b>.
+          <button id="change" class="text-brand-600 font-medium hover:underline">Change</button></p>
+        <div id="boxes" class="mt-6 flex justify-between gap-2" dir="ltr"></div>
+        <p id="otp-error" class="hidden mt-3 text-sm text-red-600"></p>
+        <button id="verify" class="mt-6 w-full py-3 rounded-xl bg-brand-600 text-white font-semibold hover:bg-brand-700 disabled:opacity-50">Verify &amp; continue</button>
+        <p class="mt-4 text-sm text-center text-slate-500">Didn't get it?
+          <button id="resend" class="text-brand-600 font-semibold disabled:text-slate-400" disabled>Resend code</button>
+          <span id="resend-timer" class="text-slate-400"></span></p>
+        <p class="mt-2 text-xs text-center text-slate-400">Code expires in <span id="expiry">5:00</span></p>
+      </div>
+
+      <!-- Step 3 -->
+      <div id="step-done" class="hidden text-center py-4">
+        <div class="mx-auto w-16 h-16 rounded-full bg-brand-50 text-brand-600 flex items-center justify-center text-3xl">✓</div>
+        <h2 id="done-title" class="text-2xl font-extrabold mt-4"></h2>
+        <p id="done-text" class="text-slate-500 mt-1 text-sm"></p>
+        <a id="done-link" class="mt-6 inline-block px-6 py-3 rounded-xl bg-brand-600 text-white font-semibold hover:bg-brand-700"></a>
+      </div>
+    </div>
+  </main>
+
+  <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] hidden px-5 py-3 rounded-xl bg-ink text-white text-sm shadow-xl max-w-[90vw]"></div>
+
+  <script>
+    /* Same mock OTP rules as the landing-page modal (otp.js).
+       Replace Otp.send / Otp.verify with POST /api/auth/otp/send and /verify. */
+    const CFG = { length: 6, ttl: 300, cooldown: 30, maxAttempts: 5 };
+    const $ = (id) => document.getElementById(id);
+    const isOwner = new URLSearchParams(location.search).get('role') === 'owner';
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+
+    const Otp = (() => {
+      const store = {};
+      return {
+        async send(phone) {
+          await wait(700);
+          const code = String(Math.floor(100000 + Math.random() * 900000));
+          store[phone] = { code, exp: Date.now() + CFG.ttl * 1000, tries: 0 };
+          console.info(`[MOCK SMS → ${phone}] Your PlayJo code is ${code}`);
+          return { demoCode: code };
+        },
+        async verify(phone, code) {
+          await wait(600);
+          const r = store[phone];
+          if (!r) return { ok: false, error: 'No code was requested for this number.' };
+          if (Date.now() > r.exp) { delete store[phone]; return { ok: false, error: 'Code expired. Request a new one.' }; }
+          if (r.tries >= CFG.maxAttempts) return { ok: false, error: 'Too many attempts. Request a new code.' };
+          r.tries++;
+          if (r.code !== code) { const left = CFG.maxAttempts - r.tries; return { ok: false, error: `Incorrect code. ${left} attempt${left === 1 ? '' : 's'} left.` }; }
+          delete store[phone];
+          return { ok: true };
+        }
+      };
+    })();
+
+    function normalizeJo(raw) {
+      let d = String(raw).replace(/[\s\-()]/g, '');
+      if (d.startsWith('+962')) d = d.slice(4); else if (d.startsWith('00962')) d = d.slice(5); else if (d.startsWith('0')) d = d.slice(1);
+      return /^7[789]\d{7}$/.test(d) ? '+962' + d : null;
+    }
+    function toast(msg, ms = 6000) { const t = $('toast'); t.textContent = msg; t.classList.remove('hidden'); clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.add('hidden'), ms); }
+    function setErr(id, msg) { const e = $(id); e.textContent = msg || ''; e.classList.toggle('hidden', !msg); }
+    function show(step) { ['step-form', 'step-otp', 'step-done'].forEach((s) => $(s).classList.toggle('hidden', s !== step)); }
+
+    // Copy per role
+    $('role-badge').textContent = isOwner ? 'Facility owner' : 'Customer';
+    $('title').textContent = isOwner ? 'List your facility on PlayJo' : 'Create your account';
+    $('subtitle').textContent = isOwner ? 'Tell us about your venue. Our team reviews every listing before it goes live.' : 'We will text you a code to verify your phone.';
+    $('owner-fields').classList.toggle('hidden', !isOwner);
+
+    // OTP boxes
+    $('boxes').innerHTML = Array.from({ length: CFG.length }, () =>
+      '<input class="otp w-12 h-14 text-center text-2xl font-bold rounded-xl border border-slate-200 outline-none focus:border-brand-500 focus:ring-4 focus:ring-emerald-500/30" maxlength="1" inputmode="numeric" autocomplete="one-time-code" />').join('');
+    const boxes = () => [...document.querySelectorAll('.otp')];
+
+    let phone = null, user = null, tResend = null, tExpiry = null;
+    const stopTimers = () => { clearInterval(tResend); clearInterval(tExpiry); };
+
+    function startTimers() {
+      stopTimers();
+      let cd = CFG.cooldown; $('resend').disabled = true; $('resend-timer').textContent = `(${cd}s)`;
+      tResend = setInterval(() => { cd--; if (cd <= 0) { clearInterval(tResend); $('resend').disabled = false; $('resend-timer').textContent = ''; } else $('resend-timer').textContent = `(${cd}s)`; }, 1000);
+      let left = CFG.ttl; const fmt = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+      $('expiry').textContent = fmt(left);
+      tExpiry = setInterval(() => { left--; $('expiry').textContent = fmt(Math.max(left, 0)); if (left <= 0) clearInterval(tExpiry); }, 1000);
+    }
+    async function sendCode() {
+      const r = await Otp.send(phone);
+      toast(`📩 Demo SMS to ${phone}: your PlayJo code is ${r.demoCode}`);
+      startTimers();
+    }
+
+    $('form').addEventListener('submit', async (e) => {
+      e.preventDefault(); setErr('form-error');
+      const v = (id) => $(id).value.trim();
+      const p = normalizeJo(v('phone'));
+      if (isOwner && !v('facility')) return setErr('form-error', 'Enter your facility name.');
+      if (!v('name')) return setErr('form-error', 'Enter your full name.');
+      if (!/^\S+@\S+\.\S+$/.test(v('email'))) return setErr('form-error', 'Enter a valid email.');
+      if (!p) return setErr('form-error', 'Enter a valid Jordanian mobile number (e.g. 79 123 4567).');
+      if (v('password').length < 8) return setErr('form-error', 'Password must be at least 8 characters.');
+      phone = p;
+      user = { name: v('name'), email: v('email'), phone, role: isOwner ? 'facility_owner' : 'customer',
+               facility: isOwner ? { name: v('facility'), city: $('city').value, sport: $('sport').value, approval_status: 'pending' } : null };
+      $('send').disabled = true; $('send').textContent = 'Sending…';
+      await sendCode();
+      $('send').disabled = false; $('send').textContent = 'Send verification code';
+      $('phone-label').textContent = phone; boxes().forEach((b) => (b.value = '')); setErr('otp-error');
+      show('step-otp'); boxes()[0].focus();
+    });
+
+    boxes().forEach((box, i, bs) => {
+      box.addEventListener('input', () => { box.value = box.value.replace(/\D/g, '').slice(0, 1); if (box.value && i < bs.length - 1) bs[i + 1].focus(); if (bs.every((b) => b.value)) verify(); });
+      box.addEventListener('keydown', (e) => { if (e.key === 'Backspace' && !box.value && i > 0) bs[i - 1].focus(); });
+      box.addEventListener('paste', (e) => {
+        e.preventDefault();
+        const d = (e.clipboardData.getData('text') || '').replace(/\D/g, '').slice(0, CFG.length);
+        d.split('').forEach((c, k) => { bs[k].value = c; });
+        bs[Math.min(d.length, bs.length - 1)].focus();
+        if (d.length === CFG.length) verify();
+      });
+    });
+
+    async function verify() {
+      const code = boxes().map((b) => b.value).join('');
+      if (code.length < CFG.length) return setErr('otp-error', 'Enter all 6 digits.');
+      setErr('otp-error');
+      $('verify').disabled = true; $('verify').textContent = 'Verifying…';
+      const r = await Otp.verify(phone, code);
+      $('verify').disabled = false; $('verify').textContent = 'Verify & continue';
+      if (!r.ok) { setErr('otp-error', r.error); boxes().forEach((b) => (b.value = '')); boxes()[0].focus(); return; }
+
+      // Production: server sets users.phone_verified = TRUE (and for owners creates a facilities row with approval_status = 'pending').
+      user.phone_verified = true;
+      try { sessionStorage.setItem('playjo_user', JSON.stringify(user)); } catch (_) {}
+      stopTimers();
+      if (isOwner) {
+        $('done-title').textContent = 'Application received';
+        $('done-text').textContent = `Thanks, ${user.name.split(' ')[0]}. ${user.facility.name} is pending review by the PlayJo team. We will email you once it is approved.`;
+        $('done-link').textContent = 'Back to home'; $('done-link').href = '../../index.html';
+      } else {
+        $('done-title').textContent = "You're verified!";
+        $('done-text').textContent = 'Welcome to PlayJo. You earned 100 bonus points.';
+        $('done-link').textContent = 'Go to my dashboard'; $('done-link').href = '../customer/dashboard.html';
+      }
+      show('step-done');
+    }
+
+    $('verify').addEventListener('click', verify);
+    $('resend').addEventListener('click', async () => { $('resend').disabled = true; await sendCode(); boxes().forEach((b) => (b.value = '')); setErr('otp-error'); boxes()[0].focus(); });
+    $('change').addEventListener('click', (e) => { e.preventDefault(); stopTimers(); show('step-form'); });
+  </script>
+</body>
+</html>

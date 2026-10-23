@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Deals – PlayJo</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{colors:{brand:{50:'#ecfdf5',100:'#d1fae5',500:'#10b981',600:'#059669',700:'#047857',900:'#064e3b'},ink:'#0f172a'},fontFamily:{sans:['Inter','system-ui','sans-serif']}}}}</script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+</head>
+<body class="font-sans text-ink bg-slate-50">
+  <div id="nav"></div>
+
+  <main class="max-w-6xl mx-auto px-4 py-8">
+    <h1 class="text-2xl md:text-3xl font-extrabold">Deals &amp; discounts</h1>
+    <p class="text-slate-500 mt-1">Claim a deal to save it to your dashboard, or copy the code at checkout.</p>
+
+    <div id="filters" class="mt-6 flex gap-2 overflow-x-auto pb-2"></div>
+    <div id="grid" class="mt-4 grid sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+  </main>
+
+  <script src="../../assets/js/data.js"></script>
+  <script>
+    renderNav('Deals');
+    const $ = (id) => document.getElementById(id);
+    let filter = 'all';
+
+    function claimedSet() { try { return new Set(JSON.parse(localStorage.getItem('playjo_claimed') || '[]')); } catch (_) { return new Set(); } }
+    function saveClaimed(s) { try { localStorage.setItem('playjo_claimed', JSON.stringify([...s])); } catch (_) {} }
+
+    function renderFilters() {
+      const opts = [['all', 'All deals'], ['platform', 'Platform-wide'], ...PJ.facilities.filter((f) => PJ.deals.some((d) => d.facilityId === f.id)).map((f) => [String(f.id), f.name])];
+      $('filters').innerHTML = opts.map(([id, label]) => `
+        <button data-f="${id}" class="shrink-0 px-4 py-2 rounded-full border text-sm font-semibold ${filter === id ? 'bg-brand-600 text-white border-brand-600' : 'bg-white border-slate-200 hover:border-brand-500'}">${label}</button>`).join('');
+    }
+
+    function renderGrid() {
+      const claimed = claimedSet();
+      const list = PJ.deals.filter((d) => filter === 'all' || (filter === 'platform' ? d.facilityId === null : String(d.facilityId) === filter));
+      $('grid').innerHTML = list.map((d) => {
+        const f = d.facilityId ? facilityById(d.facilityId) : null;
+        const badge = d.type === 'percent' ? `-${d.value}%` : `-${d.value} JOD`;
+        const isClaimed = PJ.claimed.includes(d.code) || claimed.has(d.code);
+        return `<div class="rounded-2xl border border-dashed border-brand-500/50 bg-white p-5 relative">
+          <span class="absolute top-4 right-4 px-2.5 py-1 rounded-full bg-brand-600 text-white text-xs font-bold">${badge}</span>
+          <p class="text-xs font-semibold text-brand-700">${f ? f.name : 'All clubs'}</p>
+          <h2 class="font-bold text-lg mt-1 pr-16">${d.title}</h2>
+          <p class="text-sm text-slate-600 mt-1">${d.desc}</p>
+          <p class="text-xs text-slate-500 mt-3">Valid until ${d.until}</p>
+          <div class="mt-4 flex flex-wrap items-center gap-2">
+            <button data-copy="${d.code}" class="px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 font-mono text-sm font-semibold hover:border-brand-500">${d.code}</button>
+            <button data-claim="${d.code}" class="px-3 py-1.5 rounded-lg text-sm font-semibold ${isClaimed ? 'bg-brand-50 text-brand-700' : 'bg-brand-600 text-white hover:bg-brand-700'}" ${isClaimed ? 'disabled' : ''}>${isClaimed ? 'Claimed ✓' : 'Claim'}</button>
+            <a href="facility.html?id=${d.facilityId || 1}&promo=${d.code}" class="ml-auto text-sm font-semibold text-brand-600 hover:underline">Book →</a>
+          </div></div>`;
+      }).join('') || '<p class="text-slate-500">No deals here yet.</p>';
+    }
+
+    $('filters').addEventListener('click', (e) => { const b = e.target.closest('[data-f]'); if (b) { filter = b.dataset.f; renderFilters(); renderGrid(); } });
+    $('grid').addEventListener('click', async (e) => {
+      const c = e.target.closest('[data-copy]'), k = e.target.closest('[data-claim]');
+      if (c) { try { await navigator.clipboard.writeText(c.dataset.copy); } catch (_) {} showToast(`Code ${c.dataset.copy} copied`); }
+      if (k) { const s = claimedSet(); s.add(k.dataset.claim); saveClaimed(s); renderGrid(); showToast('Saved to your dashboard'); }
+    });
+    renderFilters(); renderGrid();
+  </script>
+</body>
+</html>
