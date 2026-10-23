@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PlayJo – Book Sports Courts in Jordan</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: {
+        colors: { brand: { 50:'#ecfdf5', 100:'#d1fae5', 500:'#10b981', 600:'#059669', 700:'#047857', 900:'#064e3b' },
+                  ink: '#0f172a' },
+        fontFamily: { sans: ['Inter','system-ui','sans-serif'] }
+      } }
+    }
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    .chip-active { background:#059669; color:#fff; border-color:#059669; }
+    .no-scrollbar::-webkit-scrollbar { display:none; }
+    .no-scrollbar { scrollbar-width:none; }
+    .otp-input:focus { box-shadow: 0 0 0 3px rgba(16,185,129,.35); }
+  </style>
+</head>
+<body class="font-sans text-ink bg-slate-50">
+
+  <!-- ============ NAVBAR ============ -->
+  <header class="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-slate-200">
+    <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+      <a href="index.html" class="flex items-center gap-2 font-extrabold text-xl">
+        <span class="inline-flex w-9 h-9 rounded-xl bg-brand-600 text-white items-center justify-center">P</span>
+        Play<span class="text-brand-600">Jo</span>
+      </a>
+      <nav class="hidden md:flex items-center gap-8 text-sm font-medium text-slate-600">
+        <a href="#facilities" class="hover:text-brand-600">Explore</a>
+        <a href="#deals" class="hover:text-brand-600">Deals</a>
+        <a href="#rewards" class="hover:text-brand-600">Rewards</a>
+        <a href="#owners" class="hover:text-brand-600">For Owners</a>
+      </nav>
+      <div class="flex items-center gap-2">
+        <button id="btn-login" class="px-4 py-2 text-sm font-semibold rounded-lg hover:bg-slate-100">Log in</button>
+        <button id="btn-signup" class="px-4 py-2 text-sm font-semibold rounded-lg bg-brand-600 text-white hover:bg-brand-700">Sign up</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============ HERO ============ -->
+  <section class="bg-gradient-to-br from-brand-900 via-brand-700 to-brand-500 text-white">
+    <div class="max-w-7xl mx-auto px-4 py-16 md:py-24 grid md:grid-cols-2 gap-10 items-center">
+      <div>
+        <p class="inline-block px-3 py-1 rounded-full bg-white/15 text-xs font-semibold mb-4">🇯🇴 Jordan's #1 sports booking platform</p>
+        <h1 class="text-4xl md:text-6xl font-extrabold leading-tight">Find a court.<br/>Book in seconds.<br/>Earn rewards.</h1>
+        <p class="mt-5 text-lg text-brand-100 max-w-lg">Padel, football, basketball, golf and more – across Amman, Aqaba, Zarqa and beyond.</p>
+
+        <form id="search-form" class="mt-8 bg-white rounded-2xl p-2 flex flex-col sm:flex-row gap-2 text-ink shadow-xl">
+          <input id="search-input" type="text" placeholder="Search a club or facility…" class="flex-1 px-4 py-3 rounded-xl outline-none" />
+          <select id="city-select" class="px-4 py-3 rounded-xl bg-slate-50 outline-none">
+            <option value="">All cities</option>
+            <option>Amman</option><option>Aqaba</option><option>Zarqa</option><option>Irbid</option>
+          </select>
+          <button class="px-6 py-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold">Search</button>
+        </form>
+      </div>
+      <div class="hidden md:grid grid-cols-2 gap-4">
+        <div class="rounded-2xl bg-white/10 p-6"><p class="text-4xl font-extrabold">120+</p><p class="text-brand-100 text-sm">Courts &amp; pitches</p></div>
+        <div class="rounded-2xl bg-white/10 p-6"><p class="text-4xl font-extrabold">35</p><p class="text-brand-100 text-sm">Partner clubs</p></div>
+        <div class="rounded-2xl bg-white/10 p-6"><p class="text-4xl font-extrabold">15k</p><p class="text-brand-100 text-sm">Bookings made</p></div>
+        <div class="rounded-2xl bg-white/10 p-6"><p class="text-4xl font-extrabold">4.8★</p><p class="text-brand-100 text-sm">Average rating</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CATEGORIES + LIST/MAP ============ -->
+  <section id="facilities" class="max-w-7xl mx-auto px-4 py-12">
+    <div class="flex items-end justify-between flex-wrap gap-4 mb-6">
+      <div>
+        <h2 class="text-2xl md:text-3xl font-extrabold">Explore facilities</h2>
+        <p class="text-slate-500">Filter by sport, then switch between list and map.</p>
+      </div>
+      <div class="inline-flex rounded-xl border border-slate-200 bg-white p-1 text-sm font-semibold">
+        <button id="view-list" class="px-4 py-2 rounded-lg bg-brand-600 text-white">List</button>
+        <button id="view-map"  class="px-4 py-2 rounded-lg text-slate-600">Map</button>
+      </div>
+    </div>
+
+    <div id="category-chips" class="flex gap-2 overflow-x-auto no-scrollbar pb-3">
+      <!-- rendered by app.js -->
+    </div>
+
+    <div id="list-view" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-4"></div>
+    <div id="map-view" class="hidden mt-4 h-[480px] rounded-2xl overflow-hidden border border-slate-200 z-0"></div>
+    <p id="empty-state" class="hidden text-center text-slate-500 py-12">No facilities match your filters.</p>
+  </section>
+
+  <!-- ============ DEALS ============ -->
+  <section id="deals" class="bg-white border-y border-slate-200">
+    <div class="max-w-7xl mx-auto px-4 py-12">
+      <div class="flex items-end justify-between mb-6">
+        <div>
+          <h2 class="text-2xl md:text-3xl font-extrabold">Hot deals 🔥</h2>
+          <p class="text-slate-500">Promotions from clubs across Jordan.</p>
+        </div>
+        <a href="pages/customer/deals.html" class="text-brand-600 font-semibold text-sm hover:underline">See all →</a>
+      </div>
+      <div id="deals-grid" class="grid md:grid-cols-3 gap-6"></div>
+    </div>
+  </section>
+
+  <!-- ============ LOYALTY ============ -->
+  <section id="rewards" class="max-w-7xl mx-auto px-4 py-12">
+    <div class="rounded-3xl bg-ink text-white p-8 md:p-12 grid md:grid-cols-2 gap-8 items-center">
+      <div>
+        <h2 class="text-3xl font-extrabold">Play more. Earn more.</h2>
+        <p class="mt-3 text-slate-300">Earn <b class="text-brand-500">10 points per JOD</b> on every booking. Book repeatedly within 30 days to unlock bigger multipliers, then redeem points for discounts. 100 points = 1 JOD.</p>
+        <div class="mt-6 grid grid-cols-3 gap-3 text-center text-sm">
+          <div class="rounded-xl bg-white/10 p-3"><p class="text-xl font-bold">x1.0</p><p class="text-slate-300">1–2 bookings</p></div>
+          <div class="rounded-xl bg-white/10 p-3"><p class="text-xl font-bold">x1.25</p><p class="text-slate-300">3–4 bookings</p></div>
+          <div class="rounded-xl bg-white/10 p-3"><p class="text-xl font-bold">x1.5</p><p class="text-slate-300">5+ bookings</p></div>
+        </div>
+      </div>
+      <div class="bg-white text-ink rounded-2xl p-6 shadow-xl">
+        <p class="text-sm text-slate-500">Demo customer – Omar Haddad</p>
+        <p class="text-4xl font-extrabold mt-1">1,250 <span class="text-base font-semibold text-slate-500">points</span></p>
+        <div class="mt-3 h-2 rounded-full bg-slate-100"><div class="h-2 rounded-full bg-brand-500 w-3/4"></div></div>
+        <p class="text-xs text-slate-500 mt-2">750 points to Gold tier · Worth 12.50 JOD</p>
+        <ul class="mt-4 space-y-2 text-sm">
+          <li class="flex justify-between"><span>Padel Arena booking</span><span class="text-brand-600 font-semibold">+280</span></li>
+          <li class="flex justify-between"><span>Trax Amman (x1.25 bonus)</span><span class="text-brand-600 font-semibold">+438</span></li>
+          <li class="flex justify-between"><span>Welcome bonus</span><span class="text-brand-600 font-semibold">+100</span></li>
+        </ul>
+        <a href="pages/customer/dashboard.html" class="mt-5 block text-center py-2.5 rounded-xl bg-brand-600 text-white font-semibold hover:bg-brand-700">Open my dashboard</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ OWNERS CTA ============ -->
+  <section id="owners" class="max-w-7xl mx-auto px-4 pb-16">
+    <div class="rounded-3xl bg-brand-50 border border-brand-100 p-8 md:p-10 flex flex-col md:flex-row items-center justify-between gap-6">
+      <div>
+        <h3 class="text-2xl font-extrabold">Own a club or facility?</h3>
+        <p class="text-slate-600 mt-1">List your venue, manage bookings, run promotions, and see your revenue – all in one dashboard.</p>
+      </div>
+      <a href="pages/auth/register.html?role=owner" class="px-6 py-3 rounded-xl bg-brand-600 text-white font-semibold hover:bg-brand-700 whitespace-nowrap">List your facility</a>
+    </div>
+  </section>
+
+  <footer class="bg-ink text-slate-400 text-sm">
+    <div class="max-w-7xl mx-auto px-4 py-8 flex flex-col md:flex-row justify-between gap-2">
+      <p>© 2026 PlayJo. Made in Jordan.</p>
+      <p>Amman · Aqaba · Zarqa · Irbid</p>
+    </div>
+  </footer>
+
+  <!-- ============ AUTH + OTP MODAL ============ -->
+  <div id="auth-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4" role="dialog" aria-modal="true">
+    <div id="modal-backdrop" class="absolute inset-0 bg-ink/60"></div>
+    <div class="relative bg-white w-full max-w-md rounded-3xl shadow-2xl p-6 md:p-8">
+      <button id="modal-close" class="absolute top-4 right-4 text-slate-400 hover:text-ink text-2xl leading-none" aria-label="Close">&times;</button>
+
+      <!-- STEP 1: Register form -->
+      <div id="step-register">
+        <h3 class="text-2xl font-extrabold">Create your account</h3>
+        <p class="text-slate-500 text-sm mt-1">We'll text you a code to verify your phone.</p>
+        <form id="register-form" class="mt-6 space-y-4" novalidate>
+          <div>
+            <label class="text-sm font-medium">Full name</label>
+            <input name="name" required class="mt-1 w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-500 outline-none" placeholder="Omar Haddad" />
+          </div>
+          <div>
+            <label class="text-sm font-medium">Email</label>
+            <input name="email" type="email" required class="mt-1 w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-500 outline-none" placeholder="you@example.com" />
+          </div>
+          <div>
+            <label class="text-sm font-medium">Phone number</label>
+            <div class="mt-1 flex">
+              <span class="px-3 inline-flex items-center rounded-l-xl border border-r-0 border-slate-200 bg-slate-50 text-slate-600 text-sm">🇯🇴 +962</span>
+              <input name="phone" inputmode="numeric" required class="w-full px-4 py-3 rounded-r-xl border border-slate-200 focus:border-brand-500 outline-none" placeholder="79 123 4567" />
+            </div>
+          </div>
+          <div>
+            <label class="text-sm font-medium">Password</label>
+            <input name="password" type="password" minlength="8" required class="mt-1 w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-500 outline-none" placeholder="At least 8 characters" />
+          </div>
+          <p id="register-error" class="hidden text-sm text-red-600"></p>
+          <button id="btn-send-otp" class="w-full py-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold">Send verification code</button>
+        </form>
+      </div>
+
+      <!-- STEP 2: OTP verification -->
+      <div id="step-otp" class="hidden">
+        <div class="w-12 h-12 rounded-2xl bg-brand-50 text-brand-600 flex items-center justify-center text-2xl">📱</div>
+        <h3 class="text-2xl font-extrabold mt-4">Verify your phone</h3>
+        <p class="text-slate-500 text-sm mt-1">Enter the 6-digit code sent to <b id="otp-phone-label" class="text-ink"></b>.
+          <button id="otp-change-phone" class="text-brand-600 font-medium hover:underline">Change</button></p>
+
+        <div id="otp-boxes" class="mt-6 flex justify-between gap-2" dir="ltr">
+          <input class="otp-input w-12 h-14 text-center text-2xl font-bold rounded-xl border border-slate-200 outline-none focus:border-brand-500" maxlength="1" inputmode="numeric" autocomplete="one-time-code" />
+          <input class="otp-input w-12 h-14 text-center text-2xl font-bold rounded-xl border border-slate-200 outline-none focus:border-brand-500" maxlength="1" inputmode="numeric" />
+          <input class="otp-input w-12 h-14 text-center text-2xl font-bold rounded-xl border border-slate-200 outline-none focus:border-brand-500" maxlength="1" inputmode="numeric" />
+          <input class="otp-input w-12 h-14 text-center text-2xl font-bold rounded-xl border border-slate-200 outline-none focus:border-brand-500" maxlength="1" inputmode="numeric" />
+          <input class="otp-input w-12 h-14 text-center text-2xl font-bold rounded-xl border border-slate-200 outline-none focus:border-brand-500" maxlength="1" inputmode="numeric" />
+          <input class="otp-input w-12 h-14 text-center text-2xl font-bold rounded-xl border border-slate-200 outline-none focus:border-brand-500" maxlength="1" inputmode="numeric" />
+        </div>
+        <p id="otp-error" class="hidden mt-3 text-sm text-red-600"></p>
+
+        <button id="btn-verify-otp" class="mt-6 w-full py-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold disabled:opacity-50">Verify &amp; continue</button>
+        <p class="mt-4 text-sm text-center text-slate-500">
+          Didn't get it?
+          <button id="btn-resend" class="text-brand-600 font-semibold disabled:text-slate-400" disabled>Resend code</button>
+          <span id="resend-timer" class="text-slate-400"></span>
+        </p>
+        <p class="mt-2 text-xs text-center text-slate-400">Code expires in <span id="otp-expiry">5:00</span></p>
+      </div>
+
+      <!-- STEP 3: Success -->
+      <div id="step-success" class="hidden text-center py-6">
+        <div class="mx-auto w-16 h-16 rounded-full bg-brand-50 text-brand-600 flex items-center justify-center text-3xl">✓</div>
+        <h3 class="text-2xl font-extrabold mt-4">You're verified!</h3>
+        <p class="text-slate-500 mt-1">Welcome to PlayJo. You earned <b class="text-brand-600">100 bonus points</b>.</p>
+        <button id="btn-success-close" class="mt-6 px-6 py-3 rounded-xl bg-brand-600 text-white font-semibold hover:bg-brand-700">Start exploring</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast (used to show the mock SMS in demo mode) -->
+  <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] hidden px-5 py-3 rounded-xl bg-ink text-white text-sm shadow-xl max-w-[90vw]"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="otp.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
